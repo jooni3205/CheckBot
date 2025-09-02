@@ -13,11 +13,13 @@ app.listen(PORT, () => {
   console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
 });
 
-// 🔹 디스코드 봇 설정
+// 🔹 디스코드 봇 설정 (인텐트 보강)
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.Guilds,           // 서버 관련 이벤트
+    GatewayIntentBits.GuildMembers,     // 멤버 입장/퇴장 이벤트
+    GatewayIntentBits.GuildMessages,    // 메시지 이벤트
+    GatewayIntentBits.MessageContent    // 메시지 내용 접근
   ]
 });
 
@@ -72,6 +74,7 @@ client.on(Events.GuildMemberAdd, member => {
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
 });
 
+// 🔹 환경변수 TOKEN으로 로그인
 client.login(process.env.TOKEN);
 
 // 🔹 데이터 저장/불러오기
