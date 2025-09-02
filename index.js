@@ -1,7 +1,19 @@
 import 'dotenv/config';
 import fs from 'fs';
+import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
+// 🔹 Express 웹 서버 (Render 포트 바인딩)
+const app = express();
+app.get('/', (req, res) => {
+  res.send('봇이 작동 중입니다 🚀');
+});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
+});
+
+// 🔹 디스코드 봇 설정
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -9,8 +21,8 @@ const client = new Client({
   ]
 });
 
-const userJoinCounts = {}; // 유저 입장 횟수 저장용
-loadData(); // 봇 시작 시 기존 데이터 불러오기
+const userJoinCounts = {};
+loadData();
 
 client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
@@ -49,28 +61,24 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-// 새 유저 감지
 client.on(Events.GuildMemberAdd, member => {
   const userId = member.user.id;
-
   if (userJoinCounts[userId]) {
     userJoinCounts[userId]++;
   } else {
     userJoinCounts[userId] = 1;
   }
-
-  saveData(); // 변경된 데이터 저장
+  saveData();
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
 });
 
 client.login(process.env.TOKEN);
 
-// 파일 저장 함수
+// 🔹 데이터 저장/불러오기
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
 }
 
-// 파일 불러오기 함수
 function loadData() {
   try {
     const raw = fs.readFileSync('userData.json');
