@@ -101,6 +101,15 @@ app.listen(PORT, async () => {
   }
 });
 
+// 🔁 Self-ping 기능 추가 (Node.js 18+)
+const SELF_URL = 'https://checkbot-1-8gar.onrender.com'; // Render 앱의 공개 URL
+
+setInterval(() => {
+  fetch(SELF_URL)
+    .then(() => console.log('🔁 Self-ping 성공'))
+    .catch(err => console.error('❌ Self-ping 실패:', err));
+}, 600000); // 10분마다 호출
+
 // 데이터 저장/불러오기
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
