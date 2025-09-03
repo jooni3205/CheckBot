@@ -108,7 +108,7 @@ setInterval(() => {
   fetch(SELF_URL)
     .then(() => console.log('🔁 Self-ping 성공'))
     .catch(err => console.error('❌ Self-ping 실패:', err));
-}, 600000); // 10분마다 호출
+}, 300000); // 5분마다 호출
 
 // 데이터 저장/불러오기
 function saveData() {
@@ -124,3 +124,4 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
+
