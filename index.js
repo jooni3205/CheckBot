@@ -3,23 +3,13 @@ import fs from 'fs';
 import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
-// 🔹 Express 웹 서버 (Render 포트 바인딩)
-const app = express();
-app.get('/', (req, res) => {
-  res.send('봇이 작동 중입니다 🚀');
-});
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
-});
-
 // 🔹 디스코드 봇 설정 (인텐트 보강)
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,           // 서버 관련 이벤트
-    GatewayIntentBits.GuildMembers,     // 멤버 입장/퇴장 이벤트
-    GatewayIntentBits.GuildMessages,    // 메시지 이벤트
-    GatewayIntentBits.MessageContent    // 메시지 내용 접근
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
 });
 
@@ -94,15 +84,22 @@ client.on(Events.GuildMemberAdd, async member => {
   }
 });
 
-// 🔹 로그인 시도 + 디버그 로깅
-(async () => {
+// 🔹 Express 웹 서버 (Render 포트 바인딩) + 봇 로그인
+const app = express();
+app.get('/', (req, res) => {
+  res.send('봇이 작동 중입니다 🚀');
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, async () => {
+  console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
   console.log("TOKEN 상태:", process.env.TOKEN ? "OK" : "MISSING");
   try {
     await client.login(process.env.TOKEN);
   } catch (err) {
     console.error("❌ 로그인 실패:", err);
   }
-})();
+});
 
 // 데이터 저장/불러오기
 function saveData() {
