@@ -3,7 +3,7 @@ import fs from 'fs';
 import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
-// 🔹 디스코드 봇 설정 (인텐트 보강)
+// 🔹 디스코드 봇 설정
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -21,37 +21,45 @@ client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 });
 
-// 슬래시 명령어 처리
+// 슬래시 명령어 처리 (중복 응답 방지)
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
+  if (interaction.replied || interaction.deferred) return;
 
-  if (interaction.commandName === 'ping') {
-    await interaction.reply('Pong! 🏓');
-  }
+  try {
+    switch (interaction.commandName) {
+      case 'ping':
+        await interaction.reply('Pong! 🏓');
+        break;
 
-  if (interaction.commandName === 'say') {
-    const text = interaction.options.getString('text', true);
-    await interaction.reply(text);
-  }
+      case 'say':
+        const text = interaction.options.getString('text', true);
+        await interaction.reply(text);
+        break;
 
-  if (interaction.commandName === 'count') {
-    const userId = interaction.user.id;
-    const count = userJoinCounts[userId] || 0;
-    await interaction.reply(`👋 ${interaction.user.username}님은 지금까지 ${count}번 들어오셨어요.`);
-  }
+      case 'count':
+        const userId = interaction.user.id;
+        const count = userJoinCounts[userId] || 0;
+        await interaction.reply(`👋 ${interaction.user.username}님은 지금까지 ${count}번 들어오셨어요.`);
+        break;
 
-  if (interaction.commandName === 'list') {
-    if (Object.keys(userJoinCounts).length === 0) {
-      await interaction.reply('아직 입장한 유저가 없습니다.');
-      return;
+      case 'list':
+        if (Object.keys(userJoinCounts).length === 0) {
+          await interaction.reply('아직 입장한 유저가 없습니다.');
+        } else {
+          let message = '📋 유저 입장 목록:\n';
+          for (const [userId, count] of Object.entries(userJoinCounts)) {
+            message += `• <@${userId}> — ${count}번\n`;
+          }
+          await interaction.reply(message);
+        }
+        break;
+
+      default:
+        await interaction.reply('❓ 알 수 없는 명령어입니다.');
     }
-
-    let message = '📋 유저 입장 목록:\n';
-    for (const [userId, count] of Object.entries(userJoinCounts)) {
-      message += `• <@${userId}> — ${count}번\n`;
-    }
-
-    await interaction.reply(message);
+  } catch (err) {
+    console.error('❌ Interaction 처리 중 오류:', err);
   }
 });
 
@@ -59,18 +67,13 @@ client.on(Events.InteractionCreate, async interaction => {
 client.on(Events.GuildMemberAdd, async member => {
   const userId = member.user.id;
 
-  if (userJoinCounts[userId]) {
-    userJoinCounts[userId]++;
-  } else {
-    userJoinCounts[userId] = 1;
-  }
-
+  userJoinCounts[userId] = (userJoinCounts[userId] || 0) + 1;
   saveData();
+
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
 
-  // 3회 이상이면 특정 채널 알림
   if (userJoinCounts[userId] >= 3) {
-    const channelId = '1412332644716515425'; // 원하는 채널 ID로 변경
+    const channelId = '1412332644716515425'; // 원하는 채널 ID
     try {
       const channel = await member.guild.channels.fetch(channelId);
       if (channel && channel.isTextBased()) {
@@ -79,12 +82,12 @@ client.on(Events.GuildMemberAdd, async member => {
         console.log('❌ 알림 채널을 찾을 수 없거나 텍스트 채널이 아닙니다.');
       }
     } catch (err) {
-      console.error('❌ 채널을 가져오는 중 오류 발생:', err);
+      console.error('❌ 채널 가져오기 오류:', err);
     }
   }
 });
 
-// 🔹 Express 웹 서버 (Render 포트 바인딩) + 봇 로그인
+// 🔹 Express 웹 서버 + 봇 로그인
 const app = express();
 app.get('/', (req, res) => {
   res.send('봇이 작동 중입니다 🚀');
@@ -101,8 +104,8 @@ app.listen(PORT, async () => {
   }
 });
 
-// 🔁 Self-ping 기능 추가 (Node.js 18+)
-const SELF_URL = 'https://checkbot-1-8gar.onrender.com'; // Render 앱의 공개 URL
+// 🔁 Self-ping 기능 (Node.js 18+)
+const SELF_URL = 'https://checkbot-1-8gar.onrender.com';
 
 setInterval(() => {
   fetch(SELF_URL)
@@ -110,7 +113,7 @@ setInterval(() => {
     .catch(err => console.error('❌ Self-ping 실패:', err));
 }, 300000); // 5분마다 호출
 
-// 데이터 저장/불러오기
+// 🔹 데이터 저장/불러오기
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
 }
@@ -124,4 +127,3 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
