@@ -3,28 +3,25 @@ import fs from 'fs';
 import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
-// 🔹 Express 웹 서버 (Render 포트 바인딩)
+// 🔹 Express 웹 서버 설정
 const app = express();
 app.get('/', (req, res) => {
   res.send('봇이 작동 중입니다 🚀');
 });
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
+app.listen(3000, () => {
+  console.log('🌐 웹 서버가 3000번 포트에서 실행 중');
 });
 
-// 🔹 디스코드 봇 설정 (인텐트 보강)
+// 🔹 디스코드 봇 설정
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,           // 서버 관련 이벤트
-    GatewayIntentBits.GuildMembers,     // 멤버 입장/퇴장 이벤트
-    GatewayIntentBits.GuildMessages,    // 메시지 이벤트
-    GatewayIntentBits.MessageContent    // 메시지 내용 접근
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers
   ]
 });
 
-const userJoinCounts = {};
-loadData();
+const userJoinCounts = {}; // 유저 입장 횟수 저장용
+loadData(); // 봇 시작 시 기존 데이터 불러오기
 
 client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
@@ -63,25 +60,43 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.on(Events.GuildMemberAdd, member => {
+// 🔹 새 유저 감지 + 3회 이상이면 특정 채널 알림
+client.on(Events.GuildMemberAdd, async member => {
   const userId = member.user.id;
+
   if (userJoinCounts[userId]) {
     userJoinCounts[userId]++;
   } else {
     userJoinCounts[userId] = 1;
   }
-  saveData();
+
+  saveData(); // 변경된 데이터 저장
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
+
+  // 3회 이상이면 알림 전송
+  if (userJoinCounts[userId] >= 3) {
+    const channelId = '1412332644716515425'; // 원하는 채널 ID로 변경
+    try {
+      const channel = await member.guild.channels.fetch(channelId);
+      if (channel && channel.isTextBased()) {
+        await channel.send(`🚨 <@${userId}>님이 ${userJoinCounts[userId]}번째로 서버에 들어왔습니다!`);
+      } else {
+        console.log('❌ 알림 채널을 찾을 수 없거나 텍스트 채널이 아닙니다.');
+      }
+    } catch (err) {
+      console.error('❌ 채널을 가져오는 중 오류 발생:', err);
+    }
+  }
 });
 
-// 🔹 환경변수 TOKEN으로 로그인
 client.login(process.env.TOKEN);
 
-// 🔹 데이터 저장/불러오기
+// 파일 저장 함수
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
 }
 
+// 파일 불러오기 함수
 function loadData() {
   try {
     const raw = fs.readFileSync('userData.json');
