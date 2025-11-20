@@ -1,12 +1,9 @@
 import 'dotenv/config';
 import fs from 'fs';
 import express from 'express';
-import fetch from 'node-fetch'; // Render에서 self-ping 사용 시 필요
-import { Client, GatewayIntentBits, Events, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, Events } from 'discord.js';
 
-// -----------------------------
 // 🔹 디스코드 봇 설정
-// -----------------------------
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -19,49 +16,12 @@ const client = new Client({
 const userJoinCounts = {};
 loadData();
 
-// -----------------------------
-// 🔹 슬래시 명령 정의 및 등록
-// -----------------------------
-const commands = [
-  new SlashCommandBuilder().setName('ping').setDescription('Pong!'),
-  new SlashCommandBuilder()
-    .setName('say')
-    .setDescription('Echo your text')
-    .addStringOption(option =>
-      option.setName('text')
-        .setDescription('What to say')
-        .setRequired(true)
-    ),
-  new SlashCommandBuilder()
-    .setName('count')
-    .setDescription('내 입장 횟수를 확인합니다'),
-  new SlashCommandBuilder()
-    .setName('list')
-    .setDescription('서버에 들어온 유저 목록과 횟수를 보여줍니다')
-].map(cmd => cmd.toJSON());
-
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-
-(async () => {
-  try {
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-      { body: commands }
-    );
-    console.log('✅ 슬래시 명령 등록 완료');
-  } catch (err) {
-    console.error('❌ 슬래시 명령 등록 실패:', err);
-  }
-})();
-
-// -----------------------------
-// 🔹 봇 이벤트 처리
-// -----------------------------
+// 봇 준비 완료 시
 client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 });
 
-// 슬래시 명령어 처리
+// 슬래시 명령어 처리 (중복 응답 방지)
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.replied || interaction.deferred) return;
@@ -127,9 +87,7 @@ client.on(Events.GuildMemberAdd, async member => {
   }
 });
 
-// -----------------------------
 // 🔹 Express 웹 서버 + 봇 로그인
-// -----------------------------
 const app = express();
 app.get('/', (req, res) => {
   res.send('봇이 작동 중입니다 🚀');
@@ -139,7 +97,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
   console.log("TOKEN 상태:", process.env.TOKEN ? "OK" : "MISSING");
-
   try {
     await client.login(process.env.TOKEN);
   } catch (err) {
@@ -147,9 +104,7 @@ app.listen(PORT, async () => {
   }
 });
 
-// -----------------------------
-// 🔹 Self-ping (Render에서 24/7 유지용)
-// -----------------------------
+// 🔁 Self-ping 기능 (Node.js 18+)
 const SELF_URL = 'https://checkbot-1-8gar.onrender.com';
 
 setInterval(() => {
@@ -158,9 +113,7 @@ setInterval(() => {
     .catch(err => console.error('❌ Self-ping 실패:', err));
 }, 300000); // 5분마다 호출
 
-// -----------------------------
 // 🔹 데이터 저장/불러오기
-// -----------------------------
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
 }
