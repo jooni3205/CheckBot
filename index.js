@@ -73,7 +73,7 @@ client.on(Events.GuildMemberAdd, async member => {
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
 
   if (userJoinCounts[userId] >= 3) {
-    const channelId = '1412332644716515425'; // 원하는 채널 ID
+    const channelId = '1441087159191998569'; // 원하는 채널 ID
     try {
       const channel = await member.guild.channels.fetch(channelId);
       if (channel && channel.isTextBased()) {
@@ -127,3 +127,4 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
+
