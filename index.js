@@ -27,7 +27,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   try {
     // 반드시 옵션 추가 → 15분 유지됨
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     switch (interaction.commandName) {
 
@@ -133,3 +133,4 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
+
