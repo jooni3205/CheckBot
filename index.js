@@ -105,7 +105,7 @@ app.listen(PORT, async () => {
 });
 
 // 🔁 Self-ping 기능 (Node.js 18+)
-const SELF_URL = 'https://checkbot-1-8gar.onrender.com';
+const SELF_URL = 'https://checkbot-q0dd.onrender.com';
 
 setInterval(() => {
   fetch(SELF_URL)
@@ -127,3 +127,4 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
+
