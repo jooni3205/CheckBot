@@ -44,16 +44,13 @@ client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   try {
-    // ✅ Interaction 먼저 defer
     await interaction.deferReply();
 
-    // 🔹 명령 로그 출력
     const options = interaction.options.data
       .map(opt => `${opt.name}=${opt.value}`)
       .join(', ');
     console.log(`[COMMAND] ${interaction.user.tag} ran /${interaction.commandName}${options ? ' (' + options + ')' : ''}`);
 
-    // 🔹 명령 처리
     switch (interaction.commandName) {
       case 'ping':
         await interaction.editReply('Pong! 🏓');
@@ -82,7 +79,22 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         break;
 
-      case 'addcount': // 🔹 새 명령어
+      case 'list2': // 🔹 입장 횟수 2회인 유저만
+        const filteredUsers = Object.entries(userJoinCounts)
+          .filter(([_, count]) => count === 2);
+
+        if (filteredUsers.length === 0) {
+          await interaction.editReply('2번 입장한 유저가 없습니다.');
+        } else {
+          let message = '📋 2번 입장한 유저 목록:\n';
+          filteredUsers.forEach(([userId, count]) => {
+            message += `• <@${userId}> — ${count}번\n`;
+          });
+          await interaction.editReply(message);
+        }
+        break;
+
+      case 'addcount': // 🔹 입장 횟수 수동 증가
         const targetUser = interaction.options.getUser('target', true);
         const targetId = targetUser.id;
 
