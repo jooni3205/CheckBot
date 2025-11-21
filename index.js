@@ -21,49 +21,52 @@ client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 });
 
-// 슬래시 명령어 처리 (중복 응답 방지)
+// 🔹 슬래시 명령어 처리 (Unknown Interaction 방지 버전)
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.replied || interaction.deferred) return;
 
   try {
+    // ⭐ 중요: 인터랙션 먼저 잠궈서 15분 동안 유효하게 유지
+    await interaction.deferReply();
+
     switch (interaction.commandName) {
+
       case 'ping':
-        await interaction.reply('Pong! 🏓');
+        await interaction.editReply('Pong! 🏓');
         break;
 
       case 'say':
         const text = interaction.options.getString('text', true);
-        await interaction.reply(text);
+        await interaction.editReply(text);
         break;
 
       case 'count':
         const userId = interaction.user.id;
         const count = userJoinCounts[userId] || 0;
-        await interaction.reply(`👋 ${interaction.user.username}님은 지금까지 ${count}번 들어오셨어요.`);
+        await interaction.editReply(`👋 ${interaction.user.username}님은 지금까지 ${count}번 들어오셨어요.`);
         break;
 
       case 'list':
         if (Object.keys(userJoinCounts).length === 0) {
-          await interaction.reply('아직 입장한 유저가 없습니다.');
+          await interaction.editReply('아직 입장한 유저가 없습니다.');
         } else {
           let message = '📋 유저 입장 목록:\n';
           for (const [userId, count] of Object.entries(userJoinCounts)) {
             message += `• <@${userId}> — ${count}번\n`;
           }
-          await interaction.reply(message);
+          await interaction.editReply(message);
         }
         break;
 
       default:
-        await interaction.reply('❓ 알 수 없는 명령어입니다.');
+        await interaction.editReply('❓ 알 수 없는 명령어입니다.');
     }
   } catch (err) {
     console.error('❌ Interaction 처리 중 오류:', err);
   }
 });
 
-// 새 유저 입장 감지
+// 🔹 새 유저 입장 감지
 client.on(Events.GuildMemberAdd, async member => {
   const userId = member.user.id;
 
@@ -104,7 +107,7 @@ app.listen(PORT, async () => {
   }
 });
 
-// 🔁 Self-ping 기능 (Node.js 18+)
+// 🔁 Self-ping 기능
 const SELF_URL = 'https://checkbot-q0dd.onrender.com';
 
 setInterval(() => {
@@ -123,8 +126,7 @@ function loadData() {
     const raw = fs.readFileSync('userData.json');
     Object.assign(userJoinCounts, JSON.parse(raw));
     console.log('📂 기존 데이터 불러오기 완료');
-  } catch (err) {
+  } catch {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
