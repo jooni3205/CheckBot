@@ -21,6 +21,9 @@ const commands = [
     .setName('list')
     .setDescription('서버에 들어온 유저 목록과 횟수를 보여줍니다'),
   new SlashCommandBuilder()
+  .setName('list2')
+  .setDescription('입장 횟수가 2번인 유저 목록을 보여줍니다'),
+  new SlashCommandBuilder()
     .setName('addcount')
     .setDescription('지정한 유저의 입장 횟수를 1회 증가시킵니다')
     .addUserOption(option =>
@@ -49,3 +52,4 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     console.error('❌ 슬래시 명령 등록 실패:', err);
   }
 })();
+
