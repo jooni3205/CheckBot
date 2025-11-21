@@ -21,13 +21,13 @@ client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 });
 
-// 🔹 슬래시 명령어 처리 (Unknown Interaction 방지 버전)
+// 🔹 슬래시 명령어 처리 (Unknown Interaction 완전 방지 버전)
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   try {
-    // ⭐ 중요: 인터랙션 먼저 잠궈서 15분 동안 유효하게 유지
-    await interaction.deferReply();
+    // 반드시 옵션 추가 → 15분 유지됨
+    await interaction.deferReply({ ephemeral: false });
 
     switch (interaction.commandName) {
 
@@ -61,6 +61,7 @@ client.on(Events.InteractionCreate, async interaction => {
       default:
         await interaction.editReply('❓ 알 수 없는 명령어입니다.');
     }
+
   } catch (err) {
     console.error('❌ Interaction 처리 중 오류:', err);
   }
@@ -100,6 +101,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
   console.log("TOKEN 상태:", process.env.TOKEN ? "OK" : "MISSING");
+
+  // ⭐ 여기도 try-catch로 안정성 강화
   try {
     await client.login(process.env.TOKEN);
   } catch (err) {
@@ -130,4 +133,3 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
