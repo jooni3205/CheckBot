@@ -19,7 +19,15 @@ const commands = [
     .setDescription('내 입장 횟수를 확인합니다'),
   new SlashCommandBuilder()
     .setName('list')
-    .setDescription('서버에 들어온 유저 목록과 횟수를 보여줍니다')
+    .setDescription('서버에 들어온 유저 목록과 횟수를 보여줍니다'),
+  new SlashCommandBuilder()
+    .setName('addcount')
+    .setDescription('지정한 유저의 입장 횟수를 1회 증가시킵니다')
+    .addUserOption(option =>
+      option.setName('target')
+        .setDescription('입장 횟수를 증가시킬 유저')
+        .setRequired(true)
+    )
 ].map(cmd => cmd.toJSON());
 
 // -----------------------------
