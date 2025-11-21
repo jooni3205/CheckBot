@@ -18,8 +18,25 @@ const userJoinCounts = {};
 loadData();
 
 // 🔹 봇 준비 완료
-client.once(Events.ClientReady, c => {
+client.once(Events.ClientReady, async c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
+
+  // 🔹 기존 서버 멤버 기록 (이미 서버에 있는 사람들)
+  for (const guild of client.guilds.cache.values()) {
+    try {
+      const members = await guild.members.fetch(); // 서버 멤버 전체 가져오기
+      members.forEach(member => {
+        const userId = member.user.id;
+        if (!userJoinCounts[userId]) {
+          userJoinCounts[userId] = 1; // 기존 멤버는 1번 입장으로 기록
+        }
+      });
+      saveData();
+      console.log(`📂 ${guild.name} 서버 기존 멤버 기록 완료`);
+    } catch (err) {
+      console.error(`❌ ${guild.name} 서버 멤버 가져오기 실패:`, err);
+    }
+  }
 });
 
 // 🔹 슬래시 명령어 처리 + 로그
