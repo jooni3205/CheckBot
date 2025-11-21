@@ -82,6 +82,17 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         break;
 
+      case 'addcount': // 🔹 새 명령어
+        const targetUser = interaction.options.getUser('target', true);
+        const targetId = targetUser.id;
+
+        userJoinCounts[targetId] = (userJoinCounts[targetId] || 0) + 1;
+        saveData();
+
+        await interaction.editReply(`✅ <@${targetId}>님의 입장 횟수가 1회 증가했습니다. 현재 ${userJoinCounts[targetId]}회`);
+        console.log(`[ADDCOUNT] ${interaction.user.tag} increased ${targetUser.tag}'s count to ${userJoinCounts[targetId]}`);
+        break;
+
       default:
         await interaction.editReply('❓ 알 수 없는 명령어입니다.');
     }
