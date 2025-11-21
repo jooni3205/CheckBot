@@ -13,24 +13,31 @@ const client = new Client({
   ]
 });
 
+// 🔹 유저 입장 횟수 저장
 const userJoinCounts = {};
 loadData();
 
-// 봇 준비 완료 시
+// 🔹 봇 준비 완료
 client.once(Events.ClientReady, c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 });
 
-// 🔹 슬래시 명령어 처리 (Unknown Interaction 완전 방지 버전)
+// 🔹 슬래시 명령어 처리 + 로그
 client.on(Events.InteractionCreate, async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   try {
-    // 반드시 옵션 추가 → 15분 유지됨
+    // ✅ Interaction 먼저 defer
     await interaction.deferReply();
 
-    switch (interaction.commandName) {
+    // 🔹 명령 로그 출력
+    const options = interaction.options.data
+      .map(opt => `${opt.name}=${opt.value}`)
+      .join(', ');
+    console.log(`[COMMAND] ${interaction.user.tag} ran /${interaction.commandName}${options ? ' (' + options + ')' : ''}`);
 
+    // 🔹 명령 처리
+    switch (interaction.commandName) {
       case 'ping':
         await interaction.editReply('Pong! 🏓');
         break;
@@ -102,7 +109,6 @@ app.listen(PORT, async () => {
   console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
   console.log("TOKEN 상태:", process.env.TOKEN ? "OK" : "MISSING");
 
-  // ⭐ 여기도 try-catch로 안정성 강화
   try {
     await client.login(process.env.TOKEN);
   } catch (err) {
@@ -110,14 +116,13 @@ app.listen(PORT, async () => {
   }
 });
 
-// 🔁 Self-ping 기능
+// 🔁 Self-ping 기능 (30초마다)
 const SELF_URL = 'https://checkbot-q0dd.onrender.com';
-
 setInterval(() => {
   fetch(SELF_URL)
     .then(() => console.log('🔁 Self-ping 성공'))
     .catch(err => console.error('❌ Self-ping 실패:', err));
-}, 30000); // 30초마다 호출
+}, 30000);
 
 // 🔹 데이터 저장/불러오기
 function saveData() {
@@ -133,4 +138,3 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
