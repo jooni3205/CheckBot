@@ -105,6 +105,22 @@ client.on(Events.InteractionCreate, async interaction => {
         console.log(`[ADDCOUNT] ${interaction.user.tag} increased ${targetUser.tag}'s count to ${userJoinCounts[targetId]}`);
         break;
 
+      // 🔹 여기부터 새로 추가된 removecount 명령어
+      case 'removecount': // 🔹 입장 횟수 수동 감소
+        const removeTarget = interaction.options.getUser('target', true);
+        const removeId = removeTarget.id;
+
+        if (!userJoinCounts[removeId] || userJoinCounts[removeId] <= 0) {
+          userJoinCounts[removeId] = 0;
+          await interaction.editReply(`⚠️ <@${removeId}>님의 입장 횟수는 이미 0입니다.`);
+        } else {
+          userJoinCounts[removeId] -= 1;
+          saveData();
+          await interaction.editReply(`⬇️ <@${removeId}>님의 입장 횟수가 1회 감소했습니다. 현재 ${userJoinCounts[removeId]}회`);
+          console.log(`[REMOVECOUNT] ${interaction.user.tag} decreased ${removeTarget.tag}'s count to ${userJoinCounts[removeId]}`);
+        }
+        break;
+
       default:
         await interaction.editReply('❓ 알 수 없는 명령어입니다.');
     }
@@ -178,5 +194,3 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
-
