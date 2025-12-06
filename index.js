@@ -21,14 +21,13 @@ loadData();
 client.once(Events.ClientReady, async c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 
-  // 🔹 기존 서버 멤버 기록 (이미 서버에 있는 사람들)
   for (const guild of client.guilds.cache.values()) {
     try {
-      const members = await guild.members.fetch(); // 서버 멤버 전체 가져오기
+      const members = await guild.members.fetch();
       members.forEach(member => {
         const userId = member.user.id;
         if (!userJoinCounts[userId]) {
-          userJoinCounts[userId] = 1; // 기존 멤버는 1번 입장으로 기록
+          userJoinCounts[userId] = 1;
         }
       });
       saveData();
@@ -79,7 +78,7 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         break;
 
-      case 'list2': // 🔹 입장 횟수 2회인 유저만
+      case 'list2':
         const filteredUsers = Object.entries(userJoinCounts)
           .filter(([_, count]) => count >= 2);
 
@@ -94,19 +93,33 @@ client.on(Events.InteractionCreate, async interaction => {
         }
         break;
 
-      case 'addcount': // 🔹 입장 횟수 수동 증가
-        const targetUser = interaction.options.getUser('target', true);
-        const targetId = targetUser.id;
+      // 🔹 ⭐ 여기 수정됨: 여러명 증가 기능
+      case 'addcount': {
+        const selectedUsers = interaction.options.data
+          .map(option => option.user)
+          .filter(user => user);
 
-        userJoinCounts[targetId] = (userJoinCounts[targetId] || 0) + 1;
+        if (selectedUsers.length === 0) {
+          await interaction.editReply('⚠️ 사용자를 선택해야 합니다.');
+          return;
+        }
+
+        let message = '📈 입장 횟수 증가 완료:\n';
+
+        for (const user of selectedUsers) {
+          const id = user.id;
+          userJoinCounts[id] = (userJoinCounts[id] || 0) + 1;
+          message += `• <@${id}> → ${userJoinCounts[id]}회\n`;
+        }
+
         saveData();
+        await interaction.editReply(message);
 
-        await interaction.editReply(`✅ <@${targetId}>님의 입장 횟수가 1회 증가했습니다. 현재 ${userJoinCounts[targetId]}회`);
-        console.log(`[ADDCOUNT] ${interaction.user.tag} increased ${targetUser.tag}'s count to ${userJoinCounts[targetId]}`);
+        console.log(`[ADDCOUNT] ${interaction.user.tag} increased counts for: ${selectedUsers.map(u => u.tag).join(', ')}`);
         break;
+      }
 
-      // 🔹 여기부터 새로 추가된 removecount 명령어
-      case 'removecount': // 🔹 입장 횟수 수동 감소
+      case 'removecount':
         const removeTarget = interaction.options.getUser('target', true);
         const removeId = removeTarget.id;
 
@@ -140,7 +153,7 @@ client.on(Events.GuildMemberAdd, async member => {
   console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
 
   if (userJoinCounts[userId] >= 3) {
-    const channelId = '1431673089565131016'; // 원하는 채널 ID
+    const channelId = '1431673089565131016';
     try {
       const channel = await member.guild.channels.fetch(channelId);
       if (channel && channel.isTextBased()) {
@@ -172,7 +185,7 @@ app.listen(PORT, async () => {
   }
 });
 
-// 🔁 Self-ping 기능 (30초마다)
+// 🔁 Self-ping
 const SELF_URL = 'https://checkbot-q0dd.onrender.com';
 setInterval(() => {
   fetch(SELF_URL)
@@ -194,4 +207,3 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
-
