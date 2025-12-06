@@ -81,7 +81,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
       case 'list2': // 🔹 입장 횟수 2회인 유저만
         const filteredUsers = Object.entries(userJoinCounts)
-          .filter(([_, count]) => count === 2);
+          .filter(([_, count]) => count >= 2);
 
         if (filteredUsers.length === 0) {
           await interaction.editReply('2번 입장한 유저가 없습니다.');
@@ -194,3 +194,4 @@ function loadData() {
     console.log('📂 기존 데이터 없음. 새로 시작합니다.');
   }
 }
+
