@@ -3,6 +3,8 @@ import fs from 'fs';
 import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
+const TARGET_CHANNEL = "채널ID여기에"; // ← 이거만 바꾸면 됨
+
 // 🔹 디스코드 봇 설정
 const client = new Client({
   intents: [
@@ -17,180 +19,111 @@ const client = new Client({
 const userJoinCounts = {};
 loadData();
 
-// 🔹 봇 준비 완료
+// ======================
+// 📌 봇 로그인 후 실행
+// ======================
 client.once(Events.ClientReady, async c => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
 
-  // 🔹 기존 서버 멤버 기록 (이미 서버에 있는 사람들)
-  for (const guild of client.guilds.cache.values()) {
-    try {
-      const members = await guild.members.fetch(); // 서버 멤버 전체 가져오기
-      members.forEach(member => {
-        const userId = member.user.id;
-        if (!userJoinCounts[userId]) {
-          userJoinCounts[userId] = 1; // 기존 멤버는 1번 입장으로 기록
+  await scanOldMessages(); // 🔥 기존 메시지 스캔
+  console.log("📌 이전 메시지 분석 완료");
+
+});
+
+
+// ======================
+// 📌 메시지 감지 (새 메시지)
+// ======================
+client.on(Events.MessageCreate, async message => {
+  if (message.channel.id !== TARGET_CHANNEL) return; // 특정 채널만 감지
+  if (message.author.bot) return; // 봇 제외
+
+  // 멘션된 유저가 있으면 기록
+  if (message.mentions.users.size > 0) {
+    message.mentions.users.forEach(user => {
+      userJoinCounts[user.id] = (userJoinCounts[user.id] || 0) + 1;
+    });
+
+    saveData();
+    console.log(`📌 새 메시지 기록 업데이트됨`);
+  }
+});
+
+
+// ======================
+// 📌 이전 메시지 스캔 함수
+// ======================
+async function scanOldMessages() {
+  try {
+    const channel = await client.channels.fetch(TARGET_CHANNEL);
+
+    if (!channel || !channel.isTextBased()) {
+      return console.log("❌ 채널을 찾을 수 없거나 텍스트 채널 아님");
+    }
+
+    console.log("📂 과거 메시지 분석 중...");
+
+    let lastMessageId = null;
+    let scanned = 0;
+
+    while (true) {
+      const messages = await channel.messages.fetch({
+        limit: 100,
+        ...(lastMessageId && { before: lastMessageId })
+      });
+
+      if (messages.size === 0) break;
+
+      messages.forEach(msg => {
+        if (msg.author.bot) return;
+
+        if (msg.mentions.users.size > 0) {
+          msg.mentions.users.forEach(user => {
+            userJoinCounts[user.id] = (userJoinCounts[user.id] || 0) + 1;
+          });
         }
       });
-      saveData();
-      console.log(`📂 ${guild.name} 서버 기존 멤버 기록 완료`);
-    } catch (err) {
-      console.error(`❌ ${guild.name} 서버 멤버 가져오기 실패:`, err);
+
+      scanned += messages.size;
+      lastMessageId = messages.last().id;
+
+      if (scanned >= 2000) break; // ⛔ 원하는 만큼 조정 가능
     }
-  }
-});
 
-// 🔹 슬래시 명령어 처리 + 로그
-client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-
-  try {
-    await interaction.deferReply();
-
-    const options = interaction.options.data
-      .map(opt => `${opt.name}=${opt.value}`)
-      .join(', ');
-    console.log(`[COMMAND] ${interaction.user.tag} ran /${interaction.commandName}${options ? ' (' + options + ')' : ''}`);
-
-    switch (interaction.commandName) {
-      case 'ping':
-        await interaction.editReply('Pong! 🏓');
-        break;
-
-      case 'say':
-        const text = interaction.options.getString('text', true);
-        await interaction.editReply(text);
-        break;
-
-      case 'count':
-        const userId = interaction.user.id;
-        const count = userJoinCounts[userId] || 0;
-        await interaction.editReply(`👋 ${interaction.user.username}님은 지금까지 ${count}번 들어오셨어요.`);
-        break;
-
-      case 'list':
-        if (Object.keys(userJoinCounts).length === 0) {
-          await interaction.editReply('아직 입장한 유저가 없습니다.');
-        } else {
-          let message = '📋 유저 입장 목록:\n';
-          for (const [userId, count] of Object.entries(userJoinCounts)) {
-            message += `• <@${userId}> — ${count}번\n`;
-          }
-          await interaction.editReply(message);
-        }
-        break;
-
-      case 'list2': // 🔹 입장 횟수 2회인 유저만
-        const filteredUsers = Object.entries(userJoinCounts)
-          .filter(([_, count]) => count === 2);
-
-        if (filteredUsers.length === 0) {
-          await interaction.editReply('2번 입장한 유저가 없습니다.');
-        } else {
-          let message = '📋 2번 입장한 유저 목록:\n';
-          filteredUsers.forEach(([userId, count]) => {
-            message += `• <@${userId}> — ${count}번\n`;
-          });
-          await interaction.editReply(message);
-        }
-        break;
-
-      case 'addcount': // 🔹 입장 횟수 수동 증가
-        const targetUser = interaction.options.getUser('target', true);
-        const targetId = targetUser.id;
-
-        userJoinCounts[targetId] = (userJoinCounts[targetId] || 0) + 1;
-        saveData();
-
-        await interaction.editReply(`✅ <@${targetId}>님의 입장 횟수가 1회 증가했습니다. 현재 ${userJoinCounts[targetId]}회`);
-        console.log(`[ADDCOUNT] ${interaction.user.tag} increased ${targetUser.tag}'s count to ${userJoinCounts[targetId]}`);
-        break;
-
-      // 🔹 여기부터 새로 추가된 removecount 명령어
-      case 'removecount': // 🔹 입장 횟수 수동 감소
-        const removeTarget = interaction.options.getUser('target', true);
-        const removeId = removeTarget.id;
-
-        if (!userJoinCounts[removeId] || userJoinCounts[removeId] <= 0) {
-          userJoinCounts[removeId] = 0;
-          await interaction.editReply(`⚠️ <@${removeId}>님의 입장 횟수는 이미 0입니다.`);
-        } else {
-          userJoinCounts[removeId] -= 1;
-          saveData();
-          await interaction.editReply(`⬇️ <@${removeId}>님의 입장 횟수가 1회 감소했습니다. 현재 ${userJoinCounts[removeId]}회`);
-          console.log(`[REMOVECOUNT] ${interaction.user.tag} decreased ${removeTarget.tag}'s count to ${userJoinCounts[removeId]}`);
-        }
-        break;
-
-      default:
-        await interaction.editReply('❓ 알 수 없는 명령어입니다.');
-    }
+    saveData();
+    console.log(`✅ 이전 메시지 ${scanned}개 스캔 완료`);
 
   } catch (err) {
-    console.error('❌ Interaction 처리 중 오류:', err);
+    console.error("❌ 이전 메시지 불러오기 실패:", err);
   }
-});
+}
 
-// 🔹 새 유저 입장 감지
-client.on(Events.GuildMemberAdd, async member => {
-  const userId = member.user.id;
 
-  userJoinCounts[userId] = (userJoinCounts[userId] || 0) + 1;
-  saveData();
-
-  console.log(`🆕 ${userId} 입장 횟수: ${userJoinCounts[userId]}`);
-
-  if (userJoinCounts[userId] >= 3) {
-    const channelId = '1431673089565131016'; // 원하는 채널 ID
-    try {
-      const channel = await member.guild.channels.fetch(channelId);
-      if (channel && channel.isTextBased()) {
-        await channel.send(`🚨 <@${userId}>님이 ${userJoinCounts[userId]}번째로 서버에 들어왔습니다!`);
-      } else {
-        console.log('❌ 알림 채널을 찾을 수 없거나 텍스트 채널이 아닙니다.');
-      }
-    } catch (err) {
-      console.error('❌ 채널 가져오기 오류:', err);
-    }
-  }
-});
-
-// 🔹 Express 웹 서버 + 봇 로그인
-const app = express();
-app.get('/', (req, res) => {
-  res.send('봇이 작동 중입니다 🚀');
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-  console.log(`🌐 웹 서버가 ${PORT}번 포트에서 실행 중`);
-  console.log("TOKEN 상태:", process.env.TOKEN ? "OK" : "MISSING");
-
-  try {
-    await client.login(process.env.TOKEN);
-  } catch (err) {
-    console.error("❌ 로그인 실패:", err);
-  }
-});
-
-// 🔁 Self-ping 기능 (30초마다)
-const SELF_URL = 'https://checkbot-q0dd.onrender.com';
-setInterval(() => {
-  fetch(SELF_URL)
-    .then(() => console.log('🔁 Self-ping 성공'))
-    .catch(err => console.error('❌ Self-ping 실패:', err));
-}, 30000);
-
-// 🔹 데이터 저장/불러오기
+// ======================
+// 📌 데이터 저장 / 불러오기
+// ======================
 function saveData() {
   fs.writeFileSync('userData.json', JSON.stringify(userJoinCounts, null, 2));
 }
 
 function loadData() {
   try {
-    const raw = fs.readFileSync('userData.json');
-    Object.assign(userJoinCounts, JSON.parse(raw));
-    console.log('📂 기존 데이터 불러오기 완료');
+    Object.assign(userJoinCounts, JSON.parse(fs.readFileSync('userData.json')));
+    console.log("📂 기존 데이터 불러오기 완료");
   } catch {
-    console.log('📂 기존 데이터 없음. 새로 시작합니다.');
+    console.log("📂 데이터 없음 → 새로 생성");
   }
 }
+
+
+// ======================
+// 📌 서버 + 로그인
+// ======================
+const app = express();
+app.get('/', (req, res) => res.send("봇 작동중 🚀"));
+
+app.listen(process.env.PORT || 3000, async () => {
+  console.log(`🌐 서버 실행`);
+  await client.login(process.env.TOKEN);
+});
+
