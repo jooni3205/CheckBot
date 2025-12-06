@@ -3,7 +3,7 @@ import fs from 'fs';
 import express from 'express';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 
-const TARGET_CHANNEL = "채널ID여기에"; // ← 이거만 바꾸면 됨
+const TARGET_CHANNEL = "1167693030925545523"; // ← 이거만 바꾸면 됨
 
 // 🔹 디스코드 봇 설정
 const client = new Client({
@@ -126,4 +126,5 @@ app.listen(process.env.PORT || 3000, async () => {
   console.log(`🌐 서버 실행`);
   await client.login(process.env.TOKEN);
 });
+
 
