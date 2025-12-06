@@ -4,6 +4,19 @@ import { REST, Routes, SlashCommandBuilder } from 'discord.js';
 // -----------------------------
 // 슬래시 명령 정의
 // -----------------------------
+const addCountCommand = new SlashCommandBuilder()
+  .setName('addcount')
+  .setDescription('지정한 유저들의 입장 횟수를 1회 증가시킵니다');
+
+// 최대 25명 선택 가능 (Discord 제한)
+for (let i = 1; i <= 25; i++) {
+  addCountCommand.addUserOption(option =>
+    option.setName(`target${i}`)
+      .setDescription(`입장 횟수를 증가시킬 사용자 #${i}`)
+      .setRequired(false)
+  );
+}
+
 const commands = [
   new SlashCommandBuilder().setName('ping').setDescription('Pong!'),
   new SlashCommandBuilder()
@@ -22,7 +35,7 @@ const commands = [
     .setDescription('서버에 들어온 유저 목록과 횟수를 보여줍니다'),
   new SlashCommandBuilder()
     .setName('list2')
-    .setDescription('입장 횟수가 2번인 유저 목록을 보여줍니다'),
+    .setDescription('입장 횟수가 2번 이상인 유저들을 보여줍니다'),
   new SlashCommandBuilder()
     .setName('removecount')
     .setDescription('특정 유저의 입장 횟수를 1 감소시킵니다.')
@@ -31,14 +44,7 @@ const commands = [
         .setDescription('입장 횟수를 감소시킬 유저')
         .setRequired(true)
     ),
-  new SlashCommandBuilder()
-    .setName('addcount')
-    .setDescription('지정한 유저의 입장 횟수를 1회 증가시킵니다')
-    .addUserOption(option =>
-      option.setName('target')
-        .setDescription('입장 횟수를 증가시킬 유저')
-        .setRequired(true)
-    )
+  addCountCommand
 ].map(cmd => cmd.toJSON());
 
 // -----------------------------
@@ -54,7 +60,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     const guildIds = process.env.GUILD_ID.split(","); // 쉼표로 분리 (여러 서버 지원)
 
     for (const id of guildIds) {
-      const guildId = id.trim(); // 공백 제거
+      const guildId = id.trim();
 
       await rest.put(
         Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId),
